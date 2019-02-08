@@ -9,6 +9,7 @@
 
 #include "color.h"
 #include "pins.h"
+#include "filter.h"
 
 #define BLYNK_USE_DIRECT_CONNECT
 
