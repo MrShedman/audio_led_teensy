@@ -8,6 +8,7 @@
 #include <WS2812Serial.h>
 
 #include "color.h"
+#include "pins.h"
 
 #define BLYNK_USE_DIRECT_CONNECT
 
@@ -16,12 +17,8 @@
 
 char auth[] = "48fd9239b27341af9b36bc5492d77f7b";
 
-const uint8_t fan_pin = 21;
-
 const uint16_t numled0 = 288;
 const uint16_t numled1 = 288;
-const uint8_t pin0 = 8;
-const uint8_t pin1 = 10;
 
 uint8_t drawingMemory0[numled0*3];         //  3 bytes per LED
 DMAMEM uint8_t displayMemory0[numled0*12]; // 12 bytes per LED
@@ -29,8 +26,8 @@ DMAMEM uint8_t displayMemory0[numled0*12]; // 12 bytes per LED
 uint8_t drawingMemory1[numled1*3];         //  3 bytes per LED
 DMAMEM uint8_t displayMemory1[numled1*12]; // 12 bytes per LED
 
-WS2812Serial leds0(numled0, displayMemory0, drawingMemory0, pin0, WS2812_GRB);
-WS2812Serial leds1(numled1, displayMemory1, drawingMemory1, pin1, WS2812_GRB);
+WS2812Serial leds0(numled0, displayMemory0, drawingMemory0, led_pin0, WS2812_GRB);
+WS2812Serial leds1(numled1, displayMemory1, drawingMemory1, led_pin1, WS2812_GRB);
 
 //const int myInput = AUDIO_INPUT_LINEIN;
 const int myInput = AUDIO_INPUT_MIC;
