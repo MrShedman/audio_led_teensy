@@ -9,6 +9,20 @@
 
 #include "color.h"
 
+#define BLYNK_USE_DIRECT_CONNECT
+
+#define BLYNK_PRINT Serial
+#include <BlynkSimpleSerialBLE.h>
+
+char auth[] = "48fd9239b27341af9b36bc5492d77f7b";
+
+BLYNK_WRITE(V1)
+{
+    int pinValue = param.asInt(); // assigning incoming value from pin V1 to a variable
+
+    Serial.println(pinValue);
+}
+
 const uint16_t numled0 = 288;
 const uint16_t numled1 = 288;
 const uint8_t pin0 = 8;
@@ -63,6 +77,8 @@ void setup()
 {
     //Serial.begin(115200);
     //while(!Serial);
+    Serial1.begin(115200);
+    Blynk.begin(Serial1, auth);
 
     // Audio connections require memory to work.  For more
     // detailed information, see the MemoryAndCpuUsage example
@@ -182,4 +198,6 @@ void loop()
 
         increase_hue();
     }
+
+    Blynk.run();
 }
