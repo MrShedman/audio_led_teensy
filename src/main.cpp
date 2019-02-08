@@ -16,12 +16,7 @@
 
 char auth[] = "48fd9239b27341af9b36bc5492d77f7b";
 
-BLYNK_WRITE(V1)
-{
-    int pinValue = param.asInt(); // assigning incoming value from pin V1 to a variable
-
-    Serial.println(pinValue);
-}
+const uint8_t fan_pin = 23;
 
 const uint16_t numled0 = 288;
 const uint16_t numled1 = 288;
@@ -73,12 +68,35 @@ void spin_once()
     loop_start_time = micros();
 }
 
+void set_fan_speed(uint8_t speed)
+{
+    analogWrite(fan_pin, speed);
+}
+
+BLYNK_WRITE(V0)
+{
+    float pinValue = param.asInt();
+    set_fan_speed(pinValue);
+    Serial.println(pinValue);
+}
+
+BLYNK_WRITE(V1)
+{
+    int pinValue = param.asInt();
+
+    Serial.println(pinValue);
+}
+
 void setup() 
 {
-    //Serial.begin(115200);
-    //while(!Serial);
+    Serial.begin(115200);
+    while(!Serial);
+
     Serial1.begin(115200);
     Blynk.begin(Serial1, auth);
+
+    pinMode(fan_pin, OUTPUT);
+    analogWrite(fan_pin, 0);
 
     // Audio connections require memory to work.  For more
     // detailed information, see the MemoryAndCpuUsage example
