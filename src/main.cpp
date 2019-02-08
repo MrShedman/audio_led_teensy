@@ -16,7 +16,7 @@
 
 char auth[] = "48fd9239b27341af9b36bc5492d77f7b";
 
-const uint8_t fan_pin = 23;
+const uint8_t fan_pin = 21;
 
 const uint16_t numled0 = 288;
 const uint16_t numled1 = 288;
@@ -73,6 +73,7 @@ void set_fan_speed(uint8_t speed)
     analogWrite(fan_pin, speed);
 }
 
+
 BLYNK_WRITE(V0)
 {
     float pinValue = param.asInt();
@@ -87,10 +88,17 @@ BLYNK_WRITE(V1)
     Serial.println(pinValue);
 }
 
+BLYNK_WRITE(V2)
+{
+    float pinValue = param.asInt();
+    hue = pinValue;
+    Serial.println(pinValue);
+}
+
 void setup() 
 {
-    Serial.begin(115200);
-    while(!Serial);
+    //Serial.begin(115200);
+    //while(!Serial);
 
     Serial1.begin(115200);
     Blynk.begin(Serial1, auth);
@@ -214,7 +222,7 @@ void loop()
 
         update_leds();
 
-        increase_hue();
+        //increase_hue();
     }
 
     Blynk.run();
