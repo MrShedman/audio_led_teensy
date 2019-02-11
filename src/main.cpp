@@ -1,3 +1,4 @@
+
 #include <Arduino.h>
 #include <Audio.h>
 #include <Wire.h>
@@ -98,8 +99,8 @@ void setup()
     //Serial.begin(115200);
     //while(!Serial);
 
-    Serial1.begin(115200);
-    Blynk.begin(Serial1, auth);
+    //Serial1.begin(115200);
+    //Blynk.begin(Serial1, auth);
 
     pinMode(fan_pin, OUTPUT);
     analogWrite(fan_pin, 0);
@@ -184,15 +185,75 @@ void print_levels()
     Serial.println();
 }
 
+void convolve(const uint8_t *u, uint8_t smoothed[288])
+{
+    uint8_t leds[288];
+    int32_t jC;
+    int32_t jA2;
+    uint32_t s;
+    int32_t k;
+    static const uint8_t B[36] = {  11, 16, 22, 30, 40, 52, 
+                                    66, 83, 102, 122, 144, 166,
+                                    187, 207, 225, 239, 249, 254, 
+                                    254, 249, 239, 225, 207, 187, 
+                                    166, 144, 122, 102, 83, 66, 
+                                    52, 40, 30, 22, 16, 11 };
+
+    for (uint8_t m = 0; m < 16; m++)
+    {
+        for (uint8_t n = 0; n < 18; n++)
+        {
+            leds[m * 18 + n] = u[m];
+        }
+    }
+
+    for (jC = 0; jC < 288; jC++)
+    {
+        jA2 = jC + 19;
+        if (288 <= jA2) 
+        {
+            jA2 = 288;
+        }
+
+        s = 0;
+        if (36 < jC + 20) 
+        {
+            k = jC - 16;
+        } 
+        else
+        {
+            k = 1;
+        }
+
+        while (k <= jA2) 
+        {
+            s += leds[k - 1] * B[(jC - k) + 19];
+            k++;
+        }
+
+        s /= 4430;
+        smoothed[jC] = s;
+    }
+}
+
 void update_leds()
 {
+    uint8_t out[288];
+    uint8_t in[16];
+
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        in[i] = uint8_t(levels_avg[i] * 255.0);
+    }
+
+    convolve(in, out);
+
     for (int i = 0; i < 16; i++)
     {
-        uint32_t color = hsv2rgb(hue, 1.0, levels_avg[i]);
-
         for (int j = 0; j < 18; j++)
         {
             int idx = i * 18 + j;
+            uint32_t color = hsv2rgb(hue, 1.0, out[idx] / 255.0);
             leds0.setPixel(idx, color);
             leds1.setPixel(idx, color);
         }
@@ -220,8 +281,8 @@ void loop()
 
         update_leds();
 
-        //increase_hue();
+        increase_hue();
     }
 
-    Blynk.run();
+    //Blynk.run();
 }
