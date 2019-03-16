@@ -1,10 +1,6 @@
 
 #include <Arduino.h>
 #include <Audio.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include <SerialFlash.h>
 
 #include <WS2812Serial.h>
 
@@ -12,12 +8,17 @@
 #include "pins.h"
 #include "filter.h"
 
-#define BLYNK_USE_DIRECT_CONNECT
-
 #define BLYNK_PRINT Serial
-#include <BlynkSimpleSerialBLE.h>
 
-char auth[] = "48fd9239b27341af9b36bc5492d77f7b";
+#include <ESP8266_Lib.h>
+#include <BlynkSimpleShieldEsp8266.h>
+
+char auth[] = "0a764907c78042b497a89d6f2afbecab";
+char ssid[] = "PLUSNET-7WTF";
+char pass[] = "6c2347ce5a";
+char ip[] =  "192.168.1.83";
+
+ESP8266 wifi(&Serial1);
 
 const uint16_t numled0 = 288;
 const uint16_t numled1 = 288;
@@ -31,34 +32,93 @@ DMAMEM uint8_t displayMemory1[numled1*12]; // 12 bytes per LED
 WS2812Serial leds0(numled0, displayMemory0, drawingMemory0, led_pin0, WS2812_GRB);
 WS2812Serial leds1(numled1, displayMemory1, drawingMemory1, led_pin1, WS2812_GRB);
 
-//const int myInput = AUDIO_INPUT_LINEIN;
-const int myInput = AUDIO_INPUT_MIC;
+const int myInput = AUDIO_INPUT_LINEIN;
+//const int myInput = AUDIO_INPUT_MIC;
 
-// Create the Audio components.  These should be created in the
-// order data flows, inputs/sources -> processing -> outputs
-//
-AudioInputI2S          audioInput;         // audio shield: mic or line-in
-AudioSynthWaveformSine sinewave;
-AudioAnalyzeFFT1024    myFFT;
-AudioOutputI2S         audioOutput;        // audio shield: headphones & line-out
+AudioInputI2S           audioInput;
+AudioAnalyzeFFT1024     fft;
+AudioAnalyzeRMS         rms;
 
-// Connect either the live input or synthesized sine wave
-AudioConnection patchCord1(audioInput, 0, myFFT, 0);
-//AudioConnection patchCord1(sinewave, 0, myFFT, 0);
+AudioMixer4             mixer;
+AudioConnection         patchCord1(audioInput, 0, mixer, 0);
+AudioConnection         patchCord2(audioInput, 1, mixer, 3);
+AudioConnection         patchCord3(mixer, fft);
+AudioConnection         patchCord5(mixer, rms);
 
 AudioControlSGTL5000 audioShield;
 
 // An array to hold the 16 frequency bands
 float levels_raw[16];
 float levels_avg[16];
+float rms_level;
+
+float dt = 1.0 / 87.0;
+float f_cut = 5.0;
+pt1Filter_t filters[16];
+pt1Filter_t rms_filter;
 
 uint32_t loop_start_time = 0;
 double loop_rate = 60.0;
 const uint32_t loop_time_us = 1e6 / loop_rate;
 
-uint8_t loop_counter = 0;
-uint8_t num_samples = 2;
 float hue = 0.0;
+
+float clip(float n, float lower, float upper) 
+{
+    return max(lower, min(n, upper));
+}
+
+void init_filters()
+{
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        pt1FilterInit(&filters[i], f_cut, dt);
+    }
+    pt1FilterInit(&rms_filter, f_cut, dt);
+}
+
+void apply_filters()
+{
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        levels_avg[i] = pt1FilterApply(&filters[i], levels_raw[i]);
+    }
+    rms_level = pt1FilterApply(&rms_filter, rms_level);
+}
+
+float smoothstep_high_pass(float x, float cut)
+{
+    if (x > cut)
+    {
+        return 1.0;
+    }
+    else
+    {
+        x /= cut;
+        return x * x * (3.0 - 2.0 * x);
+    }
+}
+
+float smoothstep_low_pass(float x, float cut)
+{
+    if (x < cut)
+    {
+        return 0.0;
+    }
+    else
+    {
+        x = map(x, cut, 1.0, 0.0, 1.0);
+        return x * x * (3.0 - 2.0 * x);
+    }
+}
+
+void apply_attenuation()
+{
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        levels_avg[i] = smoothstep_low_pass(levels_avg[i], 0.1);
+    } 
+}
 
 void spin_once()
 {
@@ -71,7 +131,6 @@ void set_fan_speed(uint8_t speed)
 {
     analogWrite(fan_pin, speed);
 }
-
 
 BLYNK_WRITE(V0)
 {
@@ -94,80 +153,92 @@ BLYNK_WRITE(V2)
     Serial.println(pinValue);
 }
 
-void setup() 
+void init_audio()
 {
-    //Serial.begin(115200);
-    //while(!Serial);
-
-    //Serial1.begin(115200);
-    //Blynk.begin(Serial1, auth);
-
-    pinMode(fan_pin, OUTPUT);
-    analogWrite(fan_pin, 0);
-
-    // Audio connections require memory to work.  For more
-    // detailed information, see the MemoryAndCpuUsage example
     AudioMemory(12);
 
-    // Enable the audio shield and set the output volume.
     audioShield.enable();
     audioShield.inputSelect(myInput);
     audioShield.volume(1.0);
+    audioShield.lineInLevel(7);
 
-    // Configure the window algorithm to use
-    myFFT.windowFunction(AudioWindowHanning1024);
-    //myFFT.windowFunction(NULL);
+    fft.windowFunction(AudioWindowNuttall1024);//AudioWindowHanning1024);
+}
 
-    // Create a synthetic sine wave, for testing
-    // To use this, edit the connections above
-    sinewave.amplitude(0.8);
-    sinewave.frequency(1034.007);
+void init_blynk()
+{
+    const uint8_t ch_pd = 2;
+    pinMode(ch_pd, OUTPUT);
+    digitalWrite(ch_pd, LOW);
+    delay(300);
+    digitalWrite(ch_pd, HIGH);
 
+    // Set ESP8266 baud rate
+    Serial1.begin(115200);
+    delay(10);
+
+    Blynk.begin(auth, wifi, ssid, pass, ip, 8080);
+}
+
+void init_leds()
+{
     leds0.begin();
     leds1.begin();
+}
+
+void setup() 
+{
+    init_blynk();
+
+    init_filters();
+
+    init_audio();
+
+    init_leds();
+
+    pinMode(fan_pin, OUTPUT);
+    analogWrite(fan_pin, 0);
+}
+
+bool read_rms()
+{
+    bool rtn_sts = false;
+
+    if (rms.available()) 
+    {
+        rms_level = rms.read();
+    }
+
+    return rtn_sts;
 }
 
 bool read_fft()
 {
     bool rtn_sts = false;
 
-    if (myFFT.available()) 
+    if (fft.available()) 
     {
-        // read the 512 FFT frequencies into 16 levels
-        // music is heard in octaves, but the FFT data
-        // is linear, so for the higher octaves, read
-        // many FFT bins together.
-        levels_raw[0] +=  myFFT.read(0);
-        levels_raw[1] +=  myFFT.read(1);
-        levels_raw[2] +=  myFFT.read(2, 3);
-        levels_raw[3] +=  myFFT.read(4, 6);
-        levels_raw[4] +=  myFFT.read(7, 10);
-        levels_raw[5] +=  myFFT.read(11, 15);
-        levels_raw[6] +=  myFFT.read(16, 22);
-        levels_raw[7] +=  myFFT.read(23, 32);
-        levels_raw[8] +=  myFFT.read(33, 46);
-        levels_raw[9] +=  myFFT.read(47, 66);
-        levels_raw[10] += myFFT.read(67, 93);
-        levels_raw[11] += myFFT.read(94, 131);
-        levels_raw[12] += myFFT.read(132, 184);
-        levels_raw[13] += myFFT.read(185, 257);
-        levels_raw[14] += myFFT.read(258, 359);
-        levels_raw[15] += myFFT.read(360, 511);
+        levels_raw[0] =  fft.read(0);
+        levels_raw[1] =  fft.read(1);
+        levels_raw[2] =  fft.read(2, 3);
+        levels_raw[3] =  fft.read(4, 6);
+        levels_raw[4] =  fft.read(7, 10);
+        levels_raw[5] =  fft.read(11, 15);
+        levels_raw[6] =  fft.read(16, 22);
+        levels_raw[7] =  fft.read(23, 32);
+        levels_raw[8] =  fft.read(33, 46);
+        levels_raw[9] =  fft.read(47, 66);
+        levels_raw[10] = fft.read(67, 93);
+        levels_raw[11] = fft.read(94, 131);
+        levels_raw[12] = fft.read(132, 184);
+        levels_raw[13] = fft.read(185, 257);
+        levels_raw[14] = fft.read(258, 359);
+        levels_raw[15] = fft.read(360, 511);
 
-        loop_counter++;
+        apply_filters();
+        apply_attenuation();
 
-        if (loop_counter == num_samples)
-        {
-            const float scale = 1.0 / (float)num_samples;
-            for (uint8_t i = 0; i < 16; i++)
-            {
-                levels_avg[i] = levels_raw[i] * scale;
-                levels_raw[i] = 0.0;
-            }
-
-            loop_counter = 0;
-            rtn_sts = true;
-        }      
+        rtn_sts = true;      
     }
 
     return rtn_sts;
@@ -180,8 +251,33 @@ void print_levels()
         Serial.print(levels_avg[i]);
         Serial.print(",");
     }
-    Serial.print(levels_avg[15]);
 
+    Serial.println();
+}
+
+void print_rms()
+{
+    Serial.print(rms_level);
+
+    Serial.println();
+}
+
+void print_cpu_use()
+{
+    Serial.print("fft=");
+    Serial.print(fft.processorUsage());
+    Serial.print(",");
+    Serial.print(fft.processorUsageMax());
+    Serial.print("  ");
+    Serial.print("all=");
+    Serial.print(AudioProcessorUsage());
+    Serial.print(",");
+    Serial.print(AudioProcessorUsageMax());
+    Serial.print("    ");
+    Serial.print("Memory: ");
+    Serial.print(AudioMemoryUsage());
+    Serial.print(",");
+    Serial.print(AudioMemoryUsageMax());
     Serial.println();
 }
 
@@ -198,6 +294,8 @@ void convolve(const uint8_t *u, uint8_t smoothed[288])
                                     254, 249, 239, 225, 207, 187, 
                                     166, 144, 122, 102, 83, 66, 
                                     52, 40, 30, 22, 16, 11 };
+
+    const uint32_t window_sum = 4430;
 
     for (uint8_t m = 0; m < 16; m++)
     {
@@ -216,7 +314,7 @@ void convolve(const uint8_t *u, uint8_t smoothed[288])
         }
 
         s = 0;
-        if (36 < jC + 20) 
+        if (36 < jC + 20)
         {
             k = jC - 16;
         } 
@@ -231,7 +329,7 @@ void convolve(const uint8_t *u, uint8_t smoothed[288])
             k++;
         }
 
-        s /= 4430;
+        s /= window_sum;
         smoothed[jC] = s;
     }
 }
@@ -243,6 +341,7 @@ void update_leds()
 
     for (uint8_t i = 0; i < 16; i++)
     {
+        levels_avg[i] = clip(levels_avg[i], 0.0, 1.0);
         in[i] = uint8_t(levels_avg[i] * 255.0);
     }
 
@@ -253,9 +352,9 @@ void update_leds()
         for (int j = 0; j < 18; j++)
         {
             int idx = i * 18 + j;
-            uint32_t color = hsv2rgb(hue, 1.0, out[idx] / 255.0);
-            leds0.setPixel(idx, color);
-            leds1.setPixel(idx, color);
+            rgb_t c = hsv2rgb(hue, 1.0, out[idx] / 255.0);
+            leds0.setPixel(idx, c.r, c.g, c.b);
+            leds1.setPixel(idx, c.r, c.g, c.b);
         }
     }
 
@@ -265,7 +364,7 @@ void update_leds()
 
 void increase_hue()
 {
-    hue += 1;
+    hue += 0.1;
 
     if (hue > 360)
     {
@@ -277,12 +376,18 @@ void loop()
 {
     if (read_fft())
     {
-        print_levels();
+        //print_rms();
+        read_rms();
+
+
+        //print_cpu_use();
+        //print_levels();
+
 
         update_leds();
 
-        increase_hue();
+        //increase_hue();
     }
 
-    //Blynk.run();
+    Blynk.run();
 }
