@@ -1,105 +1,33 @@
 #include <Arduino.h>
 
-uint32_t rgb (uint8_t r, uint8_t g, uint8_t b)
-{
-    uint32_t c;
-    c = r;
-    c <<= 8;
-    c |= g;
-    c <<= 8;
-    c |= b;
-    return c;
-}
-
-uint32_t rgb(float r, float g, float b)
-{
-    return rgb(uint8_t(r * 255.0), uint8_t(g * 255.0), uint8_t(b * 255.0));
-}
-
-struct rgb_u8
+struct rgb_t
 {
     uint8_t r;
     uint8_t g;
     uint8_t b;
 };
 
-struct hsv_converter
+struct hsv_t
 {
-    uint32_t i;
-    float p;
-    float q;
-    float t;
+    float h;
+    float s;
+    float v;
 };
 
-void hsv_pre_compute(hsv_converter* conv, float h, float s)
-{
-    float hh;
-    float ff;
-
-    hh = h;
-    if(hh >= 360.0) hh = 0.0;
-    hh /= 60.0;
-    conv->i = (uint32_t)hh;
-    ff = hh - conv->i;
-    conv->p = (1.0 - s);
-    conv->q = (1.0 - (s * ff));
-    conv->t = (1.0 - (s * (1.0 - ff)));
-}
-
-rgb_u8 hsv2rgb(hsv_converter* conv, float v)
-{
-    float r, g, b;
-    switch(conv->i) 
-    {
-        case 0:
-            r = v;
-            g = conv->t;
-            b = conv->p;
-        break;
-        case 1:
-            r = conv->q;
-            g = v;
-            b = conv->p;
-        break;
-        case 2:
-            r = conv->p;
-            g = v;
-            b = conv->t;
-        break;
-
-        case 3:
-            r = conv->p;
-            g = conv->q;
-            b = v;
-        break;
-        case 4:
-            r = conv->t;
-            g = conv->p;
-            b = v;
-        break;
-        case 5:
-        default:
-            r = v;
-            g = conv->p;
-            b = conv->q;
-        break;
-    }
-
-    return rgb_u8{r*255.0, g*255.0, b*255.0};
-}
-
 // h in degrees, s and v between 0 and 1
-uint32_t hsv2rgb(float h, float s, float v)
+rgb_t hsv2rgb(float h, float s, float v)
 {
     float hh, p, q, t, ff;
     uint32_t i;
-    float r, g, b;
+    rgb_t rgb;
 
-    if(s <= 0.0) 
+    v *= 255.0;
+
+    if (s <= 0.0) 
     {
-        r = v;
-        g = v;
-        b = v;
+        rgb.r = v;
+        rgb.g = v;
+        rgb.b = v;
     }
     else
     {
@@ -115,39 +43,45 @@ uint32_t hsv2rgb(float h, float s, float v)
         switch(i) 
         {
             case 0:
-                r = v;
-                g = t;
-                b = p;
+                rgb.r = v;
+                rgb.g = t;
+                rgb.b = p;
             break;
             case 1:
-                r = q;
-                g = v;
-                b = p;
+                rgb.r = q;
+                rgb.g = v;
+                rgb.b = p;
             break;
             case 2:
-                r = p;
-                g = v;
-                b = t;
+                rgb.r = p;
+                rgb.g = v;
+                rgb.b = t;
             break;
 
             case 3:
-                r = p;
-                g = q;
-                b = v;
+                rgb.r = p;
+                rgb.g = q;
+                rgb.b = v;
             break;
             case 4:
-                r = t;
-                g = p;
-                b = v;
+                rgb.r = t;
+                rgb.g = p;
+                rgb.b = v;
             break;
             case 5:
             default:
-                r = v;
-                g = p;
-                b = q;
+                rgb.r = v;
+                rgb.g = p;
+                rgb.b = q;
             break;
         }
     }
 
-    return rgb(r, g, b);     
+    return rgb;     
+}
+
+// h in degrees, s and v between 0 and 1
+rgb_t hsv2rgb(hsv_t hsv)
+{
+    return hsv2rgb(hsv.h, hsv.s, hsv.v);
 }
