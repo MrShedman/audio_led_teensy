@@ -1,31 +1,33 @@
 
 #include <Arduino.h>
 
-#include "color.h"
-#include "pins.h"
-#include "filter.h"
+#include "audio_proc.h"
 #include "connectivity.h"
 #include "leds.h"
-#include "audio_proc.h"
-#include "utils.h"
+#include "thermal.h"
+#include "scheduler.h"
 
-BLYNK_WRITE(V0)
+Task_t fft_task("fft_task", fft_available, update_fft, TASK_PERIOD_HZ(87), TASK_PRIORITY_REALTIME);
+Task_t thermal_task("thermal_task", nullptr, update_temp, TASK_PERIOD_HZ(temp_read_rate), TASK_PRIORITY_LOW);
+Task_t power_task("power_task", nullptr, update_power, TASK_PERIOD_HZ(current_read_rate), TASK_PRIORITY_MEDIUM);
+
+Task_t blynk_run_task("blynk_run_task", nullptr, update_blynk, TASK_PERIOD_HZ(200), TASK_PRIORITY_HIGH);
+Task_t blynk_sync_task("blynk_sync_task", nullptr, sync_params, TASK_PERIOD_HZ(20), TASK_PRIORITY_MEDIUM_HIGH);
+
+void init_scheduler()
 {
-    float pinValue = param.asInt();
-    set_fan_speed(pinValue);
-    Serial.println(pinValue);
-}
+    schedulerInit();
+    addTask(&fft_task);
+    addTask(&thermal_task);
+    addTask(&power_task);
+    addTask(&blynk_run_task);
+    addTask(&blynk_sync_task);
 
-BLYNK_WRITE(V1)
-{
-    int pinValue = param.asInt();
-
-    Serial.println(pinValue);
-}
-
-BLYNK_WRITE(V2)
-{
-    set_hue(param.asInt());
+    setTaskEnabled(&fft_task, true);
+    setTaskEnabled(&thermal_task, true);
+    setTaskEnabled(&power_task, true);
+    setTaskEnabled(&blynk_run_task, true);
+    setTaskEnabled(&blynk_sync_task, true);
 }
 
 void setup() 
@@ -36,21 +38,12 @@ void setup()
 
     init_leds();
 
-    init_fan();
+    init_thermal_manager();
+
+    init_scheduler();
 }
 
 void loop() 
 {
-    if (read_fft())
-    {
-        //print_rms();
-        read_rms();
-
-        //print_cpu_use();
-        //print_levels();
-
-        update_leds(get_fft_data());
-    }
-
-    run_blynk();
+    scheduler();
 }

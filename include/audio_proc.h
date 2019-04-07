@@ -5,18 +5,18 @@
 float* get_fft_data();
 
 void init_filters();
+
 void apply_filters();
-
-float smoothstep_high_pass(float x, float cut);
-float smoothstep_low_pass(float x, float cut);
-
 void apply_attenuation();
 void apply_clipping();
 
 void init_audio();
 
-bool read_rms();
-bool read_fft();
+bool rms_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs);
+bool fft_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs);
+
+void update_rms(uint32_t currentTimeUs);
+void update_fft(uint32_t currentTimeUs);
 
 void print_levels();
 void print_rms();

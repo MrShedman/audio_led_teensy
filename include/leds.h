@@ -6,8 +6,10 @@ void init_leds();
 
 void set_hue(float h);
 
-void increase_hue(float rate);
+float get_hue();
 
-void convolve(const uint8_t *u, uint8_t smoothed[288]);
+void set_hue_auto_increase(bool flag);
+
+bool get_hue_auto_increase();
 
 void update_leds(float fft[16]);

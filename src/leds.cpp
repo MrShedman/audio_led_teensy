@@ -18,6 +18,7 @@ WS2812Serial leds0(numled0, displayMemory0, drawingMemory0, led_pin0, WS2812_GRB
 WS2812Serial leds1(numled1, displayMemory1, drawingMemory1, led_pin1, WS2812_GRB);
 
 float hue = 0.0;
+bool hue_auto_inc = false;
 
 void init_leds()
 {
@@ -30,14 +31,24 @@ void set_hue(float h)
     hue = constrain(h, 0.0, 360.0);
 }
 
-void increase_hue(float rate)
+float get_hue()
 {
-    hue += 0.1;
+    return hue;
+}
 
-    if (hue > 360)
-    {
-        hue = 0.0;
-    }
+void set_hue_auto_increase(bool flag)
+{
+    hue_auto_inc = flag;
+}
+
+bool get_hue_auto_increase()
+{
+    return hue_auto_inc;
+}
+
+void increase_hue()
+{
+    hue = constrain(hue + 0.1, 0.0, 360.0);
 }
 
 void convolve(const uint8_t *u, uint8_t smoothed[288])
@@ -95,6 +106,11 @@ void convolve(const uint8_t *u, uint8_t smoothed[288])
 
 void update_leds(float fft[16])
 {
+    if (hue_auto_inc)
+    {
+        increase_hue();
+    }
+    
     uint8_t out[288];
     uint8_t in[16];
 

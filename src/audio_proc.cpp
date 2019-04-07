@@ -26,8 +26,8 @@ float rms_level;
 
 float dt = 1.0 / 87.0;
 float f_cut = 5.0;
-pt1Filter_t filters[16];
-pt1Filter_t rms_filter;
+lowPassFilter_t filters[16];
+lowPassFilter_t rms_filter;
 
 float* get_fft_data()
 {
@@ -38,18 +38,18 @@ void init_filters()
 {
     for (uint8_t i = 0; i < 16; i++)
     {
-        pt1FilterInit(&filters[i], f_cut, dt);
+        lowPassFilterInit(&filters[i], f_cut, dt);
     }
-    pt1FilterInit(&rms_filter, f_cut, dt);
+    lowPassFilterInit(&rms_filter, f_cut, dt);
 }
 
 void apply_filters()
 {
     for (uint8_t i = 0; i < 16; i++)
     {
-        levels_avg[i] = pt1FilterApply(&filters[i], levels_raw[i]);
+        levels_avg[i] = lowPassFilterApply(&filters[i], levels_raw[i]);
     }
-    rms_level = pt1FilterApply(&rms_filter, rms_level);
+    rms_level = lowPassFilterApply(&rms_filter, rms_level);
 }
 
 float smoothstep_high_pass(float x, float cut)
@@ -82,7 +82,7 @@ void apply_attenuation()
 {
     for (uint8_t i = 0; i < 16; i++)
     {
-        levels_avg[i] = smoothstep_low_pass(levels_avg[i], 0.1);
+        levels_avg[i] = smoothstep_low_pass(levels_avg[i], 0.0);
     } 
 }
 
@@ -108,49 +108,43 @@ void init_audio()
     init_filters();
 }
 
-bool read_rms()
+bool rms_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs)
 {
-    bool rtn_sts = false;
-
-    if (rms.available()) 
-    {
-        rms_level = rms.read();
-    }
-
-    return rtn_sts;
+    return rms.available();
 }
 
-bool read_fft()
+bool fft_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs)
 {
-    bool rtn_sts = false;
+    return fft.available();
+}
 
-    if (fft.available()) 
-    {
-        levels_raw[0] =  fft.read(0);
-        levels_raw[1] =  fft.read(1);
-        levels_raw[2] =  fft.read(2, 3);
-        levels_raw[3] =  fft.read(4, 6);
-        levels_raw[4] =  fft.read(7, 10);
-        levels_raw[5] =  fft.read(11, 15);
-        levels_raw[6] =  fft.read(16, 22);
-        levels_raw[7] =  fft.read(23, 32);
-        levels_raw[8] =  fft.read(33, 46);
-        levels_raw[9] =  fft.read(47, 66);
-        levels_raw[10] = fft.read(67, 93);
-        levels_raw[11] = fft.read(94, 131);
-        levels_raw[12] = fft.read(132, 184);
-        levels_raw[13] = fft.read(185, 257);
-        levels_raw[14] = fft.read(258, 359);
-        levels_raw[15] = fft.read(360, 511);
+void update_rms(uint32_t currentTimeUs)
+{
+    rms_level = rms.read();
+}
 
-        apply_filters();
-        apply_attenuation();
-        apply_clipping();
+void update_fft(uint32_t currentTimeUs)
+{
+    levels_raw[0] =  fft.read(0);
+    levels_raw[1] =  fft.read(1);
+    levels_raw[2] =  fft.read(2, 3);
+    levels_raw[3] =  fft.read(4, 6);
+    levels_raw[4] =  fft.read(7, 10);
+    levels_raw[5] =  fft.read(11, 15);
+    levels_raw[6] =  fft.read(16, 22);
+    levels_raw[7] =  fft.read(23, 32);
+    levels_raw[8] =  fft.read(33, 46);
+    levels_raw[9] =  fft.read(47, 66);
+    levels_raw[10] = fft.read(67, 93);
+    levels_raw[11] = fft.read(94, 131);
+    levels_raw[12] = fft.read(132, 184);
+    levels_raw[13] = fft.read(185, 257);
+    levels_raw[14] = fft.read(258, 359);
+    levels_raw[15] = fft.read(360, 511);
 
-        rtn_sts = true;      
-    }
-
-    return rtn_sts;
+    apply_filters();
+    apply_attenuation();
+    apply_clipping();
 }
 
 void print_levels()

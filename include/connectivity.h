@@ -2,8 +2,8 @@
 
 #include <Arduino.h>
 
-#include <Blynk/BlynkHandlers.h>
-
 void init_blynk();
 
-void run_blynk();
+void update_blynk(uint32_t currentTimeUs);
+
+void sync_params(uint32_t currentTimeUs);
