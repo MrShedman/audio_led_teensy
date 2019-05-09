@@ -22,7 +22,7 @@ uint8_t get_fan_speed();
 
 float get_temp();
 
-power_stats_t get_power_stats();
+const power_stats_t& get_power_stats();
 
 void update_temp(uint32_t currentTimeUs);
 
