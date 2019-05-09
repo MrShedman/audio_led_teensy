@@ -54,7 +54,7 @@ void sync_params(uint32_t currentTimeUs)
     Blynk.virtualWrite(V1, get_hue_auto_increase());
     Blynk.virtualWrite(V2, (int)get_hue());
 
-    const power_stats_t p = get_power_stats();
+    const power_stats_t& p = get_power_stats();
     Blynk.virtualWrite(V3, p.voltage_mv);
     Blynk.virtualWrite(V4, p.current_ma);
     Blynk.virtualWrite(V5, p.power_w);
