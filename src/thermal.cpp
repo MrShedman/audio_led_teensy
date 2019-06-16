@@ -5,11 +5,10 @@
 #include "pid.h"
 
 uint8_t fan_speed = 0;
-lowPassFilter_t temp_filter;
 const float temp_read_rate = 50.0;
 const float temp_cut_off_hz = 1.0;
 const float temp_setpoint = 30.0;
-float temp_degrees = 0.0;
+float avg_temp_degrees = 0.0;
 
 lowPassFilter_t current_filter;
 const float current_read_rate = 200.0;
@@ -68,7 +67,7 @@ uint8_t get_fan_speed()
 
 float get_temp()
 {
-    return temp_degrees;
+    return avg_temp_degrees;
 }
 
 const power_stats_t& get_power_stats()
@@ -109,17 +108,17 @@ float adc_to_vin()
 
 void update_temp(const Time& currentTime)
 {
-    temp_degrees = 0.0;
+    avg_temp_degrees = 0.0;
 
     for (uint8_t i = 0; i < num_temp_sensors; ++i)
     {
         temp_sensors[i].degrees = lowPassFilterApply(&temp_sensors[i].lpf, adc_to_degrees(temp_sensors[i].pin));
-        temp_degrees += temp_sensors[i].degrees;
+        avg_temp_degrees += temp_sensors[i].degrees;
     }
 
-    temp_degrees /= (float)num_temp_sensors;
+    avg_temp_degrees /= (float)num_temp_sensors;
 
-    const float pid_out = pid.update(temp_degrees, temp_setpoint);
+    const float pid_out = pid.update(avg_temp_degrees, temp_setpoint);
 
     if (pid_out > 0.0)
     {
