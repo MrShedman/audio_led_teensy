@@ -11,6 +11,14 @@ m_microseconds(0)
 {
 }
 
+<<<<<<< 355839a92907f7fc8ef0c9cb0b38a8b4f70b8aa4
+=======
+float Time::asHertz() const
+{
+    return 1.0 / asSeconds();
+}
+
+>>>>>>> Add chrono lib
 float Time::asSeconds() const
 {
     return m_microseconds / 1000000.0;
@@ -31,6 +39,24 @@ m_microseconds(microseconds)
 {
 }
 
+<<<<<<< 355839a92907f7fc8ef0c9cb0b38a8b4f70b8aa4
+=======
+Time hertz(float amount)
+{
+    return Time(static_cast<int64_t>((1.0/amount) * 1000000.0));
+}
+
+Time hours(float amount)
+{
+    return minutes(amount * 60.0);
+}
+
+Time minutes(float amount)
+{
+    return seconds(amount * 60.0);
+}
+
+>>>>>>> Add chrono lib
 Time seconds(float amount)
 {
     return Time(static_cast<int64_t>(amount * 1000000.0));
