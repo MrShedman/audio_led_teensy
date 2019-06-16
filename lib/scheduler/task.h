@@ -6,18 +6,18 @@ class Task
 {
 public:
 
-    typedef bool (checkFunction)(const Time& currentTime, const Time& currentDeltaTime);
-    typedef void (taskFunction)(const Time& currentTime);
+    typedef bool (*checkFunction)(const Time& currentTime, const Time& currentDeltaTime);
+    typedef void (*taskFunction)(const Time& currentTime);
 
-    Task(const char* taskName, checkFunction* checkFunc_ptr, taskFunction* taskFunc_ptr, Time desired_period, const uint8_t priority);
+    Task(const char* taskName, checkFunction checkFunc_ptr, taskFunction taskFunc_ptr, Time desired_period, const uint8_t priority);
 
     void print_info();
 
     // Configuration
     uint8_t id;
     const char* taskName;
-	checkFunction* checkFunc;
-	taskFunction* taskFunc;
+	checkFunction checkFunc;
+	taskFunction taskFunc;
     Time desiredPeriod;      // target period of execution
     const uint8_t staticPriority;   // dynamicPriority grows in steps of this size, shouldn't be zero
 

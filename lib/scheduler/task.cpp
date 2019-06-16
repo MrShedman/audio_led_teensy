@@ -3,7 +3,7 @@
 #include "logger.h"
 #include "scheduler.h"
 
-Task::Task(const char* taskName, checkFunction* checkFunc_ptr, taskFunction* taskFunc_ptr, Time desired_period, const uint8_t priority)
+Task::Task(const char* taskName, checkFunction checkFunc_ptr, taskFunction taskFunc_ptr, Time desired_period, const uint8_t priority)
 :
 id(255),
 taskName(taskName),
