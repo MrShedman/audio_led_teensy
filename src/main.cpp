@@ -8,7 +8,7 @@
 #include "scheduler.h"
 #include "task.h"
 
-Task fft_task("fft_task", fft_available, update_fft, hertz(87), TASK_PRIORITY_REALTIME);
+Task led_task("led_task", fft_available, update_leds, hertz(87), TASK_PRIORITY_REALTIME);
 Task thermal_task("thermal_task", nullptr, update_temp, hertz(temp_read_rate), TASK_PRIORITY_LOW);
 Task power_task("power_task", nullptr, update_power, hertz(current_read_rate), TASK_PRIORITY_MEDIUM);
 
@@ -18,13 +18,13 @@ Task blynk_sync_task("blynk_sync_task", nullptr, sync_params, hertz(20), TASK_PR
 void init_scheduler()
 {
     schedulerInit();
-    addTask(&fft_task);
+    addTask(&led_task);
     addTask(&thermal_task);
     addTask(&power_task);
     addTask(&blynk_run_task);
     addTask(&blynk_sync_task);
 
-    setTaskEnabled(&fft_task, true);
+    setTaskEnabled(&led_task, true);
     setTaskEnabled(&thermal_task, true);
     setTaskEnabled(&power_task, true);
     setTaskEnabled(&blynk_run_task, true);

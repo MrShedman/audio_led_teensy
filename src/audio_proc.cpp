@@ -2,8 +2,6 @@
 
 #include <Audio.h>
 
-#include "filter.h"
-
 const int myInput = AUDIO_INPUT_LINEIN;
 //const int myInput = AUDIO_INPUT_MIC;
 
@@ -20,25 +18,24 @@ AudioConnection         patchCord5(mixer, rms);
 AudioControlSGTL5000 audioShield;
 
 // An array to hold the 16 frequency bands
-float levels_raw[16];
-float levels_avg[16];
+audio_level_t levels[16];
+
 float rms_level;
+lowPassFilter_t rms_filter;
 
 float dt = 1.0 / 87.0;
 float f_cut = 5.0;
-lowPassFilter_t filters[16];
-lowPassFilter_t rms_filter;
 
-float* get_fft_data()
+audio_level_t* get_fft_data()
 {
-    return levels_avg;
+    return levels;
 }
 
 void init_filters()
 {
     for (uint8_t i = 0; i < 16; i++)
     {
-        lowPassFilterInit(&filters[i], f_cut, dt);
+        lowPassFilterInit(&levels[i].filter, f_cut, dt);
     }
     lowPassFilterInit(&rms_filter, f_cut, dt);
 }
@@ -47,7 +44,7 @@ void apply_filters()
 {
     for (uint8_t i = 0; i < 16; i++)
     {
-        levels_avg[i] = lowPassFilterApply(&filters[i], levels_raw[i]);
+        levels[i].avg = lowPassFilterApply(&levels[i].filter, levels[i].raw);
     }
     rms_level = lowPassFilterApply(&rms_filter, rms_level);
 }
@@ -82,7 +79,7 @@ void apply_attenuation()
 {
     for (uint8_t i = 0; i < 16; i++)
     {
-        levels_avg[i] = smoothstep_low_pass(levels_avg[i], 0.0);
+        levels[i].avg = smoothstep_low_pass(levels[i].avg, 0.0);
     } 
 }
 
@@ -90,8 +87,8 @@ void apply_clipping()
 {
     for (uint8_t i = 0; i < 16; i++)
     {
-        levels_avg[i] = constrain(levels_avg[i], 0.0, 1.0);
-    } 
+        levels[i].avg = constrain(levels[i].avg, 0.0, 1.0);
+    }
 }
 
 void init_audio()
@@ -118,29 +115,29 @@ bool fft_available(const Time& currentTime, const Time& currentDeltaTime)
     return fft.available();
 }
 
-void update_rms(const Time& currentTime)
+void update_rms()
 {
     rms_level = rms.read();
 }
 
-void update_fft(const Time& currentTime)
+void update_fft()
 {
-    levels_raw[0] =  fft.read(0);
-    levels_raw[1] =  fft.read(1);
-    levels_raw[2] =  fft.read(2, 3);
-    levels_raw[3] =  fft.read(4, 6);
-    levels_raw[4] =  fft.read(7, 10);
-    levels_raw[5] =  fft.read(11, 15);
-    levels_raw[6] =  fft.read(16, 22);
-    levels_raw[7] =  fft.read(23, 32);
-    levels_raw[8] =  fft.read(33, 46);
-    levels_raw[9] =  fft.read(47, 66);
-    levels_raw[10] = fft.read(67, 93);
-    levels_raw[11] = fft.read(94, 131);
-    levels_raw[12] = fft.read(132, 184);
-    levels_raw[13] = fft.read(185, 257);
-    levels_raw[14] = fft.read(258, 359);
-    levels_raw[15] = fft.read(360, 511);
+    levels[0].raw =  fft.read(0);
+    levels[1].raw =  fft.read(1);
+    levels[2].raw =  fft.read(2, 3);
+    levels[3].raw =  fft.read(4, 6);
+    levels[4].raw =  fft.read(7, 10);
+    levels[5].raw =  fft.read(11, 15);
+    levels[6].raw =  fft.read(16, 22);
+    levels[7].raw =  fft.read(23, 32);
+    levels[8].raw =  fft.read(33, 46);
+    levels[9].raw =  fft.read(47, 66);
+    levels[10].raw = fft.read(67, 93);
+    levels[11].raw = fft.read(94, 131);
+    levels[12].raw = fft.read(132, 184);
+    levels[13].raw = fft.read(185, 257);
+    levels[14].raw = fft.read(258, 359);
+    levels[15].raw = fft.read(360, 511);
 
     apply_filters();
     apply_attenuation();
@@ -151,7 +148,7 @@ void print_levels()
 {
     for (uint8_t i = 0; i < 16; i++) 
     {
-        Serial.print(levels_avg[i]);
+        Serial.print(levels[i].avg);
         Serial.print(",");
     }
 

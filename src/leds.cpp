@@ -4,6 +4,7 @@
 
 #include "color.h"
 #include "pins.h"
+#include "audio_proc.h"
 
 const uint16_t numled0 = 288;
 const uint16_t numled1 = 288;
@@ -104,8 +105,12 @@ void convolve(const uint8_t *u, uint8_t smoothed[288])
     }
 }
 
-void update_leds(float fft[16])
+void update_leds(const Time& currentTime)
 {
+    update_fft();
+    
+    audio_level_t* fft = get_fft_data();
+
     if (hue_auto_inc)
     {
         increase_hue();
@@ -116,7 +121,7 @@ void update_leds(float fft[16])
 
     for (uint8_t i = 0; i < 16; i++)
     {
-        in[i] = uint8_t(fft[i] * 255.0);
+        in[i] = uint8_t(fft[i].avg * 255.0);
     }
 
     convolve(in, out);
