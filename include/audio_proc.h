@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+#include "time.h"
+
 float* get_fft_data();
 
 void init_filters();
@@ -12,11 +14,11 @@ void apply_clipping();
 
 void init_audio();
 
-bool rms_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs);
-bool fft_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs);
+bool rms_available(const Time& currentTime, const Time& currentDeltaTime);
+bool fft_available(const Time& currentTime, const Time& currentDeltaTime);
 
-void update_rms(uint32_t currentTimeUs);
-void update_fft(uint32_t currentTimeUs);
+void update_rms(const Time& currentTime);
+void update_fft(const Time& currentTime);
 
 void print_levels();
 void print_rms();

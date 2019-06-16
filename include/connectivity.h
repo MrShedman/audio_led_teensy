@@ -2,8 +2,10 @@
 
 #include <Arduino.h>
 
+#include "time.h"
+
 void init_blynk();
 
-void update_blynk(uint32_t currentTimeUs);
+void update_blynk(const Time& currentTime);
 
-void sync_params(uint32_t currentTimeUs);
+void sync_params(const Time& currentTime);

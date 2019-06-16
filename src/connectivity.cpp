@@ -28,7 +28,7 @@ void init_blynk()
     Blynk.begin(auth, wifi, ssid, pass, ip, 8080);
 }
 
-void update_blynk(uint32_t currentTimeUs)
+void update_blynk(const Time& currentTime)
 {
     Blynk.run();
 }
@@ -48,7 +48,7 @@ BLYNK_WRITE(V2)
     set_hue(param.asInt());
 }
 
-void sync_params(uint32_t currentTimeUs)
+void sync_params(const Time& currentTime)
 {
     Blynk.virtualWrite(V0, (int)get_fan_speed());
     Blynk.virtualWrite(V1, get_hue_auto_increase());

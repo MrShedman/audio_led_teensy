@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+#include "time.h"
+
 extern const float temp_read_rate;
 extern const float current_read_rate;
 
@@ -24,6 +26,6 @@ float get_temp();
 
 const power_stats_t& get_power_stats();
 
-void update_temp(uint32_t currentTimeUs);
+void update_temp(const Time& currentTime);
 
-void update_power(uint32_t currentTimeUs);
+void update_power(const Time& currentTime);

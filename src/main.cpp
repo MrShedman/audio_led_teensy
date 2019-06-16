@@ -6,13 +6,14 @@
 #include "leds.h"
 #include "thermal.h"
 #include "scheduler.h"
+#include "task.h"
 
-Task_t fft_task("fft_task", fft_available, update_fft, TASK_PERIOD_HZ(87), TASK_PRIORITY_REALTIME);
-Task_t thermal_task("thermal_task", nullptr, update_temp, TASK_PERIOD_HZ(temp_read_rate), TASK_PRIORITY_LOW);
-Task_t power_task("power_task", nullptr, update_power, TASK_PERIOD_HZ(current_read_rate), TASK_PRIORITY_MEDIUM);
+Task fft_task("fft_task", fft_available, update_fft, hertz(87), TASK_PRIORITY_REALTIME);
+Task thermal_task("thermal_task", nullptr, update_temp, hertz(temp_read_rate), TASK_PRIORITY_LOW);
+Task power_task("power_task", nullptr, update_power, hertz(current_read_rate), TASK_PRIORITY_MEDIUM);
 
-Task_t blynk_run_task("blynk_run_task", nullptr, update_blynk, TASK_PERIOD_HZ(200), TASK_PRIORITY_HIGH);
-Task_t blynk_sync_task("blynk_sync_task", nullptr, sync_params, TASK_PERIOD_HZ(20), TASK_PRIORITY_MEDIUM_HIGH);
+Task blynk_run_task("blynk_run_task", nullptr, update_blynk, hertz(200), TASK_PRIORITY_HIGH);
+Task blynk_sync_task("blynk_sync_task", nullptr, sync_params, hertz(20), TASK_PRIORITY_MEDIUM_HIGH);
 
 void init_scheduler()
 {

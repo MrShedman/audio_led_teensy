@@ -6,8 +6,8 @@ class Task
 {
 public:
 
-    typedef bool (checkFunction)(const Time& currentTimeUs, const Time& currentDeltaTimeUs);
-    typedef void (taskFunction)(const Time& currentTimeUs);
+    typedef bool (checkFunction)(const Time& currentTime, const Time& currentDeltaTime);
+    typedef void (taskFunction)(const Time& currentTime);
 
     Task(const char* taskName, checkFunction* checkFunc_ptr, taskFunction* taskFunc_ptr, Time desired_period, const uint8_t priority);
 

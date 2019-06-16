@@ -77,33 +77,44 @@ const power_stats_t& get_power_stats()
     return power_stats;
 }
 
+<<<<<<< 0a61e1dd0b45c6c48aff4a11344af1310ddfe553
 float adc_to_degrees(const uint8_t pin)
 {
     const float v = map((float)analogRead(pin), 0.0, 4096.0, 0.0, 3.3);
+=======
+float adc_to_voltage(const uint8_t pin)
+{
+    return map((float)analogRead(pin), 0.0, 4096.0, 0.0, 3.3);
+}
+
+float adc_to_degrees()
+{
+    const float v = adc_to_voltage(temp_pin);
+>>>>>>> Updated task definitions to work with new scheduler lib
 
     return (v - 0.5) * 100.0;
 }
 
 float adc_to_current()
 {
-    const float v = map((float)analogRead(current_pin), 0.0, 4096.0, 0.0, 3.3);
-
+    const float v = adc_to_voltage(current_pin);    
+    
     return (73.3 * (v / 3.3) - 36.7) * 1000.0;
 }
 
 // @todo fix voltage divider
-float adc_to_voltage()
+float adc_to_vin()
 {
     const float R1 = 2.0;
     const float R2 = 2.0;
     const float v_div = R2 / (R1 + R2);
 
-    const float v = map((float)analogRead(voltage_pin), 0.0, 4096.0, 0.0, 3.3);
+    const float v = adc_to_voltage(voltage_pin);
 
     return v / v_div;
 }
 
-void update_temp(uint32_t currentTimeUs)
+void update_temp(const Time& currentTime)
 {
     temp_degrees = 0.0;
 
@@ -128,11 +139,11 @@ void update_temp(uint32_t currentTimeUs)
     }    
 }
 
-void update_power(uint32_t currentTimeUs)
+void update_power(const Time& currentTime)
 {
     const float prev_current_ma = power_stats.current_ma;
     current_ma = lowPassFilterApply(&current_filter, adc_to_current());
-    const float voltage_mv =  adc_to_voltage();
+    const float voltage_mv = adc_to_vin();
     const float dt = 1.0 / current_read_rate;
 
     const float coloumbs = 0.5 * dt * (prev_current_ma + current_ma);

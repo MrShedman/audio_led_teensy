@@ -108,22 +108,22 @@ void init_audio()
     init_filters();
 }
 
-bool rms_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs)
+bool rms_available(const Time& currentTime, const Time& currentDeltaTime)
 {
     return rms.available();
 }
 
-bool fft_available(uint32_t currentTimeUs, uint32_t currentDeltaTimeUs)
+bool fft_available(const Time& currentTime, const Time& currentDeltaTime)
 {
     return fft.available();
 }
 
-void update_rms(uint32_t currentTimeUs)
+void update_rms(const Time& currentTime)
 {
     rms_level = rms.read();
 }
 
-void update_fft(uint32_t currentTimeUs)
+void update_fft(const Time& currentTime)
 {
     levels_raw[0] =  fft.read(0);
     levels_raw[1] =  fft.read(1);
